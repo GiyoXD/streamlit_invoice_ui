@@ -92,14 +92,17 @@ def find_and_replace(
     rules: List[Dict[str, Any]],
     limit_rows: int,
     limit_cols: int,
-    invoice_data: Optional[Dict[str, Any]] = None
+    invoice_data: Optional[Dict[str, Any]] = None,
+    max_column_limit: int = 50 # New parameter with default
 ):
     """
     A two-pass engine that handles 'exact', 'substring', and formula-based replacements.
     Pass 1: Locates all placeholders and performs simple value replacements.
     Pass 2: Uses the locations found in Pass 1 to build and apply formulas.
     """
-    print(f"\n--- Starting Find and Replace on sheets (Searching Range up to row {limit_rows}, col {limit_cols}) ---")
+    # Cap limit_cols at max_column_limit
+    effective_limit_cols = min(limit_cols, max_column_limit)
+    print(f"\n--- Starting Find and Replace on sheets (Searching Range up to row {limit_rows}, col {effective_limit_cols}) ---")
     
     # NEW: A dictionary to store the cell coordinates of each placeholder.
     placeholder_locations: Dict[str, str] = {}
@@ -114,7 +117,7 @@ def find_and_replace(
 
         # --- PASS 1: Find all placeholder locations and apply simple replacements ---
         print("  PASS 1: Locating placeholders and applying simple value replacements...")
-        for row in sheet.iter_rows(max_row=limit_rows, max_col=limit_cols):
+        for row in sheet.iter_rows(max_row=limit_rows, max_col=effective_limit_cols):
             for cell in row:
                 if not isinstance(cell.value, str) or not cell.value:
                     continue
@@ -215,7 +218,8 @@ def run_invoice_header_replacement_task(workbook: openpyxl.Workbook, invoice_dat
         rules=header_rules,
         limit_rows=14,
         limit_cols=14,
-        invoice_data=invoice_data
+        invoice_data=invoice_data,
+        max_column_limit=50
     )
     print("--- Finished Invoice Header Replacement Task ---")
 
@@ -243,7 +247,8 @@ def run_DAF_specific_replacement_task(workbook: openpyxl.Workbook):
         workbook=workbook,
         rules=DAF_rules,
         limit_rows=200,
-        limit_cols=16
+        limit_cols=16,
+        max_column_limit=50
     )
     print("--- Finished DAF-Specific Replacement Task ---")
 

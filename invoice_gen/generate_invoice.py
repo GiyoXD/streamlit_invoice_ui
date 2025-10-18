@@ -307,6 +307,9 @@ def calculate_header_dimensions(header_layout: List[Dict[str, Any]]) -> Tuple[in
 
     # Calculate the total number of columns the header occupies
     num_cols = max(cell.get('col', 0) + cell.get('colspan', 1) for cell in header_layout)
+    
+    # Cap the number of columns at 50
+    num_cols = min(num_cols, 50)
 
     return (num_rows, num_cols)
 
@@ -452,10 +455,13 @@ def process_single_table_sheet(
         print(f"Error: Config for '{sheet_name}' missing 'start_row' or 'header_to_write'. Skipping.")
         return False
 
+    # Calculate num_columns from header_to_write and pass it to write_header
+    _, num_cols_for_header = calculate_header_dimensions(header_to_write)
+
     # Write the header based on the layout in the config file
     print(f"Writing header at row {start_row}...")
     header_info = invoice_utils.write_header(
-        worksheet, start_row, header_to_write, sheet_styling_config
+        worksheet, start_row, header_to_write, sheet_styling_config, max_allowed_columns=num_cols_for_header
     )
     if not header_info:
         print(f"Error: Failed to write header for '{sheet_name}'. Skipping.")
@@ -762,15 +768,17 @@ def main():
                     table_data_to_fill = all_tables_data.get(str(table_key))
                     if not table_data_to_fill or not isinstance(table_data_to_fill, dict): print(f"Warning: No/invalid data for table key '{table_key}'. Skipping."); continue
  
+                    # Calculate num_columns from sheet_header_to_write and pass it to write_header
+                    num_header_rows, num_cols_for_header = calculate_header_dimensions(sheet_header_to_write)
+
                     print(f"Writing header for table '{table_key}' at row {write_pointer_row}...");
                     written_header_info = invoice_utils.write_header(
-                        worksheet, write_pointer_row, sheet_header_to_write, sheet_styling_config
+                        worksheet, write_pointer_row, sheet_header_to_write, sheet_styling_config, max_allowed_columns=num_cols_for_header
                     )
                     if not written_header_info: print(f"Error writing header for table '{table_key}'. Skipping sheet."); processing_successful = False; break
                     last_table_header_info = written_header_info # Keep track for width setting later
  
                     # Update write pointer after header
-                    num_header_rows, num_columns = calculate_header_dimensions(sheet_header_to_write)
                     write_pointer_row += num_header_rows
  
                     print(f"Filling data and footer for table '{table_key}' starting near row {write_pointer_row}...")

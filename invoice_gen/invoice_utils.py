@@ -424,7 +424,8 @@ def write_grand_total_weight_summary(
         return start_row
 
 def write_header(worksheet: Worksheet, start_row: int, header_layout_config: List[Dict[str, Any]],
-                 sheet_styling_config: Optional[Dict[str, Any]] = None
+                 sheet_styling_config: Optional[Dict[str, Any]] = None,
+                 max_allowed_columns: int = 50 # New parameter with default
                  ) -> Optional[Dict[str, Any]]:
     
     if not header_layout_config or start_row <= 0:
@@ -435,7 +436,9 @@ def write_header(worksheet: Worksheet, start_row: int, header_layout_config: Lis
 
     # Determine header dimensions from the layout config
     num_header_rows = max(cell.get('row', 0) for cell in header_layout_config) + 1
-    num_columns = max(cell.get('col', 0) + cell.get('colspan', 1) for cell in header_layout_config)
+    # Calculate num_columns and then cap it
+    calculated_num_columns = max(cell.get('col', 0) + cell.get('colspan', 1) for cell in header_layout_config)
+    num_columns = min(calculated_num_columns, max_allowed_columns)
     end_row = start_row + num_header_rows - 1
 
     # Get header styling from config
@@ -2169,6 +2172,37 @@ def apply_row_heights(worksheet: Worksheet, sheet_styling_config: Optional[Dict[
             try: row_num = int(row_str); set_height(row_num, height_val, f"specific_row_{row_num}")
             except ValueError: pass # Ignore invalid row numbers
 
+def trim_unused_columns(worksheet: Worksheet, num_columns_to_keep: int):
+    """
+    Removes columns from the worksheet that are beyond num_columns_to_keep
+    and are entirely empty. Iterates from right to left.
+    """
+    print(f"Trimming unused columns for sheet '{worksheet.title}' beyond column {num_columns_to_keep}...")
+    max_col = worksheet.max_column
+
+    # Iterate from the current max_column down to num_columns_to_keep + 1
+    for col_idx in range(max_col, num_columns_to_keep, -1):
+        all_cells_empty = True
+        # Check only up to max_row, as rows beyond that are also empty
+        for row_idx in range(1, worksheet.max_row + 1):
+            cell_value = worksheet.cell(row=row_idx, column=col_idx).value
+            if cell_value is not None and str(cell_value).strip() != "":
+                all_cells_empty = False
+                break
+        
+        if all_cells_empty:
+            try:
+                worksheet.delete_cols(col_idx, 1)
+                print(f"  Deleted empty column {get_column_letter(col_idx)} ({col_idx}).")
+            except Exception as e:
+                print(f"  Error deleting column {get_column_letter(col_idx)} ({col_idx}): {e}")
+        else:
+            # If a column in the "unused" range is not empty, stop trimming.
+            # This prevents deleting columns that might have content (e.g., from a template)
+            # but are beyond the configured header_to_write.
+            print(f"  Column {get_column_letter(col_idx)} ({col_idx}) contains data. Stopping trim at this column.")
+            break
+    print(f"Finished trimming columns for sheet '{worksheet.title}'. New max column: {worksheet.max_column}")
 
 # --- Main Execution Guard --- (Keep existing)
 if __name__ == "__main__":
