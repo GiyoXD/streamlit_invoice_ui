@@ -77,12 +77,13 @@
       "mappings": {
         "po": {
           "key_index": 0,
-          "id": "col_po"
+          "id": "col_po",
+          "number_format": "@"
         },
         "item": {
           "key_index": 1,
           "id": "col_item",
-          "number_format": "#,##0.00"
+          "number_format": "@"
         },
         "description": {
           "key_index": 3,
@@ -134,7 +135,7 @@
         "value_col_id": "col_item"
       },
       "footer_configurations": {
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL:",
         "total_text_column_id": 1,
         "pallet_count_column_id": 2,
         "sum_column_ids": [
@@ -164,8 +165,11 @@
           "col_amount": {
             "number_format": "#,##0.00"
           },
+          "col_po": {
+            "number_format": "@"
+          },
           "col_item": {
-            "number_format": "#,##0.00"
+            "number_format": "@"
           },
           "col_unit_price": {
             "number_format": "#,##0.00"
@@ -173,14 +177,14 @@
         },
         "merge_rules": [
           {
-            "start_column_id": 1,
+            "start_column_id": "col_po",
             "colspan": 1
           }
         ],
         "style": {
           "font": {
             "name": "Times New Roman",
-            "size": 10.0,
+            "size": 14.0,
             "bold": true
           },
           "alignment": {
@@ -195,11 +199,11 @@
       "styling": {
         "default_font": {
           "name": "Times New Roman",
-          "size": 10.0
+          "size": 12.0
         },
         "header_font": {
           "name": "Times New Roman",
-          "size": 10.0,
+          "size": 14.0,
           "bold": true
         },
         "default_alignment": {
@@ -254,20 +258,21 @@
               "vertical": "center"
             }
           },
+          "col_po": {
+            "number_format": "@",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
           "col_item": {
-            "number_format": "#,##0.00",
+            "number_format": "@",
             "alignment": {
               "horizontal": "center",
               "vertical": "center"
             }
           },
           "col_static": {
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
-          },
-          "col_po": {
             "alignment": {
               "horizontal": "center",
               "vertical": "center"
@@ -279,59 +284,51 @@
           "col_desc": 20
         },
         "row_heights": {
-          "header": 30.0,
+          "header": 45.0,
           "data_default": 30.0,
-          "footer": 30.0
+          "footer": 45.0
         }
       }
     },
     "Contract": {
-      "start_row": 20,
+      "start_row": 15,
       "header_to_write": [
         {
           "row": 0,
           "col": 0,
-          "text": "P.O Nº",
-          "id": "col_po",
+          "text": "No.",
+          "id": "col_no",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
           "col": 1,
-          "text": "Name of Cormodity\nTên và miêu tả",
+          "text": "ITEM Nº",
           "id": "col_item",
-          "rowspan": 1,
+          "rowspan": 2,
           "colspan": 1
         },
         {
           "row": 0,
           "col": 2,
-          "text": "Description\nTả hàng hóa",
-          "id": "col_desc",
-          "rowspan": 1,
-          "colspan": 1
+          "text": "Quantity(SF)",
+          "id": "col_qty_sf",
+          "colspan": 1,
+          "rowspan": 1
         },
         {
           "row": 0,
           "col": 3,
-          "text": "Quantity(SF)\nSố lượng(SF)",
-          "id": "col_qty_sf",
-          "rowspan": 1,
-          "colspan": 1
-        },
-        {
-          "row": 0,
-          "col": 4,
-          "text": "Unit Price(USD)\nĐơn giá",
+          "text": "Unit Price(USD)",
           "id": "col_unit_price",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
-          "col": 5,
-          "text": "Total value(USD)\nTrị giá",
+          "col": 4,
+          "text": "Total value(USD)",
           "id": "col_amount",
           "rowspan": 1,
           "colspan": 1
@@ -354,13 +351,11 @@
         },
         "sqft": {
           "value_key": "sqft_sum",
-          "id": "col_qty_sf",
-          "number_format": "#,##0.00"
+          "id": "col_qty_sf"
         },
         "unit_price": {
           "key_index": 2,
-          "id": "col_unit_price",
-          "number_format": "#,##0.00"
+          "id": "col_unit_price"
         },
         "amount": {
           "id": "col_amount",
@@ -369,13 +364,12 @@
           "inputs": [
             "col_qty_sf",
             "col_unit_price"
-          ],
-          "number_format": "#,##0.00"
+          ]
         }
       },
       "footer_configurations": {
-        "total_text": "TOTAL AMOUNT(Tổng trị giá):",
-        "total_text_column_id": 0,
+        "total_text": "TOTAL:",
+        "total_text_column_id": "col_no",
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -402,40 +396,23 @@
           },
           "col_amount": {
             "number_format": "#,##0.00"
-          },
-          "col_unit_price": {
-            "number_format": "#,##0.00"
           }
         },
         "merge_rules": [
           {
-            "start_column_id": 0,
+            "start_column_id": "col_no",
             "colspan": 2
           }
-        ],
-        "style": {
-          "font": {
-            "name": "Times New Roman",
-            "size": 10.0,
-            "bold": true
-          },
-          "alignment": {
-            "horizontal": "center",
-            "vertical": "center"
-          },
-          "border": {
-            "apply": true
-          }
-        }
+        ]
       },
       "styling": {
         "default_font": {
           "name": "Times New Roman",
-          "size": 10.0
+          "size": 14
         },
         "header_font": {
           "name": "Times New Roman",
-          "size": 10.0,
+          "size": 16,
           "bold": true
         },
         "default_alignment": {
@@ -466,42 +443,17 @@
         ],
         "column_id_styles": {
           "col_amount": {
-            "number_format": "#,##0.00",
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
+            "number_format": "#,##0.00"
           },
           "col_unit_price": {
-            "number_format": "#,##0.00",
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
+            "number_format": "#,##0.00"
           },
           "col_qty_sf": {
-            "number_format": "#,##0.00",
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
+            "number_format": "#,##0.00"
           },
           "col_desc": {
             "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
-          },
-          "col_po": {
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
-            }
-          },
-          "col_item": {
-            "alignment": {
-              "horizontal": "center",
-              "vertical": "center"
+              "horizontal": "left"
             }
           }
         },
@@ -513,17 +465,8 @@
           "col_amount": 47
         },
         "row_heights": {
-          "header": 28.9,
-          "data_default": 26.3,
-          "footer": 28.9
-        }
-      },
-      "data_cell_merging_rule": {
-        "col_product": {
-          "rowspan": 1
-        },
-        "col_specification": {
-          "rowspan": 1
+          "header": 36,
+          "data_default": 30
         }
       }
     },
@@ -549,7 +492,7 @@
         {
           "row": 0,
           "col": 1,
-          "text": "P.O Nº",
+          "text": "CUT.P.O.",
           "id": "col_po",
           "rowspan": 2,
           "colspan": 1
@@ -564,7 +507,7 @@
         },
         {
           "row": 0,
-          "col": 3,
+          "col": 4,
           "text": "Description",
           "id": "col_desc",
           "rowspan": 2,
@@ -572,13 +515,13 @@
         },
         {
           "row": 0,
-          "col": 4,
-          "text": "Quantity",
+          "col": 5,
+          "text": "Quantity(SF)",
           "colspan": 2
         },
         {
           "row": 0,
-          "col": 6,
+          "col": 7,
           "text": "N.W (kgs)",
           "id": "col_net",
           "rowspan": 2,
@@ -586,7 +529,7 @@
         },
         {
           "row": 0,
-          "col": 7,
+          "col": 8,
           "text": "G.W (kgs)",
           "id": "col_gross",
           "rowspan": 2,
@@ -594,7 +537,7 @@
         },
         {
           "row": 0,
-          "col": 8,
+          "col": 9,
           "text": "CBM",
           "id": "col_cbm",
           "rowspan": 2,
@@ -602,7 +545,7 @@
         },
         {
           "row": 1,
-          "col": 4,
+          "col": 5,
           "text": "PCS",
           "id": "col_qty_pcs",
           "colspan": 1,
@@ -610,7 +553,7 @@
         },
         {
           "row": 1,
-          "col": 5,
+          "col": 6,
           "text": "SF",
           "id": "col_qty_sf",
           "colspan": 1,
@@ -661,7 +604,7 @@
         }
       },
       "footer_configurations": {
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL:",
         "total_text_column_id": 1,
         "pallet_count_column_id": 2,
         "sum_column_ids": [
@@ -685,15 +628,21 @@
             "number_format": "#,##0.00"
           },
           "col_cbm": {
-            "number_format": "#,##0.00"
+            "number_format": "0.00"
           },
           "col_amount": {
             "number_format": "#,##0.00"
+          },
+          "col_po": {
+            "number_format": "@"
+          },
+          "col_item": {
+            "number_format": "@"
           }
         },
         "merge_rules": [
           {
-            "start_column_id": 1,
+            "start_column_id": "col_po",
             "colspan": 1
           }
         ],
@@ -752,8 +701,8 @@
         "column_id_styles": {
           "col_static": {
             "alignment": {
-              "horizontal": "left",
-              "vertical": "top"
+              "horizontal": "center",
+              "vertical": "center"
             },
             "font": {
               "size": 12
@@ -780,7 +729,7 @@
             }
           },
           "col_cbm": {
-            "number_format": "#,##0.00",
+            "number_format": "0.00",
             "alignment": {
               "horizontal": "center",
               "vertical": "center"
@@ -801,12 +750,20 @@
             }
           },
           "col_po": {
+            "number_format": "@",
             "alignment": {
               "horizontal": "center",
               "vertical": "center"
             }
           },
           "col_item": {
+            "number_format": "@",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_4": {
             "alignment": {
               "horizontal": "center",
               "vertical": "center"
@@ -843,14 +800,14 @@
   },
   "metadata": {
     "directory_info": {
-      "original_filename": "CT&INV&PL OJY25018 DAF.xlsx",
-      "original_stem": "CT&INV&PL OJY25018 DAF",
-      "enhanced_directory": "CT&INV&PL OJY25018 DAF_20250920_080804_aada1e",
-      "timestamp": "2025-09-20T08:08:04.631099",
+      "original_filename": "CT&INV&PL JLFMH25029 DAP(3)(1).xlsx",
+      "original_stem": "CT&INV&PL JLFMH25029 DAP(3)(1)",
+      "enhanced_directory": "CT&INV&PL JLFMH25029 DAP(3)(1)_20251030_140100_c0e5d4",
+      "timestamp": "2025-10-30T14:01:00.664156",
       "similar_names_detected": [],
       "collision_prevention": {
-        "timestamp_added": "20250920_080804",
-        "hash_suffix": "aada1e",
+        "timestamp_added": "20251030_140100",
+        "hash_suffix": "c0e5d4",
         "reason": "Enhanced naming to prevent directory collisions and confusion"
       }
     }

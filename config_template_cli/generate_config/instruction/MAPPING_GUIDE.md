@@ -50,6 +50,16 @@ python add_mapping.py --add-header "ITEM NUMBER:col_item"
 python add_mapping.py --add-header "NET WEIGHT KG:col_net"
 ```
 
+### 4. Ignoring Headers
+
+When using the Template Generator UI, you can choose to **ignore** headers that you don't need to map. Simply select `IGNORE (Skip this header)` from the dropdown when configuring a new template. Ignored headers will not be added to the mapping configuration and will be skipped during template generation.
+
+**Use cases for ignoring headers:**
+- Irrelevant columns in the source file
+- Headers that don't correspond to any system field
+- Temporary or placeholder columns
+- Headers that should not appear in the generated output
+
 ## Common Column IDs
 
 Here are the standard column IDs used in the template:
@@ -222,5 +232,15 @@ python add_mapping.py --add-header "Numéro P.O:col_po"
 python add_mapping.py --add-header "Quantité:col_qty_sf"
 python add_mapping.py --add-header "Prix unitaire:col_unit_price"
 ```
+
+### Example 3: Ignoring Unwanted Headers
+
+When using the Template Generator UI (NEW_TEMPLATE page), you may encounter headers you don't need:
+1. Upload your sample invoice
+2. Click "Analyze File Headers"
+3. For any header you want to skip, select **"IGNORE (Skip this header)"** from the dropdown
+4. Generate the template - ignored headers will not be mapped or included in the configuration
+
+**Example scenario:** Your invoice has columns like "Internal Notes" or "Temp ID" that aren't needed in the final output. Simply mark them as IGNORE during the mapping step.
 
 This flexible system allows you to handle any variation in sheet names and header texts without modifying the code!

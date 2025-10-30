@@ -90,9 +90,15 @@ class HeaderDetector:
     
     def find_headers(self, worksheet: Worksheet) -> List[HeaderMatch]:
         """
-        Search for header keywords in the worksheet and record their positions.
-        Once a header row is found, extract all headers from that entire row.
-        Handles both single-row and two-row headers by checking for merged cells.
+        IMPROVED: Search for header row using BOLD formatting detection.
+        Only processes these sheet types (case insensitive):
+        - Invoice
+        - Packing list
+        - Detail packing list
+        - Contract
+        
+        The row with the most bold cells is identified as the header row.
+        If "Quantity" header is detected, automatically handles 2-row header structure.
         
         Args:
             worksheet: The openpyxl worksheet to analyze
@@ -100,41 +106,247 @@ class HeaderDetector:
         Returns:
             List of HeaderMatch objects containing keyword, row, and column positions
         """
-        header_matches = []
-        header_matches = []
-        # First pass: Find any header keyword to identify the header row
+        # VALIDATE: Only process specific sheet types
+        sheet_name = worksheet.title.lower().strip()
+        valid_sheets = [
+            'invoice',
+            'packing list',
+            'detail packing list',
+            'contract'
+        ]
+        
+        is_valid_sheet = any(valid_name in sheet_name for valid_name in valid_sheets)
+        
+        if not is_valid_sheet:
+            print(f"[HEADER_DETECTION] Sheet '{worksheet.title}' is not a valid type")
+            print(f"[HEADER_DETECTION] Valid types: Invoice, Packing list, Detail packing list, Contract")
+            return []
+        
+        print(f"[HEADER_DETECTION] Processing sheet: {worksheet.title}")
+        
         max_rows_to_check = 30
-        header_row_found = None  # Initialize before use
-        for idx, row in enumerate(worksheet.iter_rows()):
-            if idx >= max_rows_to_check:
-                break
-            for cell in row:
+        
+        # Find header row using bold detection
+        header_row_found = self._find_header_row_by_bold(worksheet, max_rows_to_check)
+        
+        if not header_row_found:
+            print("[HEADER_DETECTION] No bold header row found, using fallback keyword detection")
+            header_row_found = self._find_header_row_by_keywords(worksheet, max_rows_to_check)
+        
+        if not header_row_found:
+            print("[HEADER_DETECTION] No header row found!")
+            return []
+        
+        print(f"[HEADER_DETECTION] Selected header row: {header_row_found}")
+        
+        # Check if this is a 2-row header by looking for "Quantity" keyword
+        is_double_header = self._is_double_header_quantity_based(worksheet, header_row_found)
+        
+        if is_double_header:
+            print(f"[HEADER_DETECTION] Detected 2-row header structure (Quantity found)")
+            header_matches = self._extract_double_header(worksheet, header_row_found)
+        else:
+            print(f"[HEADER_DETECTION] Detected single-row header structure")
+            header_matches = self._extract_all_headers_from_row(worksheet, header_row_found)
+        
+        # Apply quantity mode enhancement if enabled
+        if self.quantity_mode:
+            header_matches = self._apply_quantity_mode_enhancement(header_matches, worksheet)
+        
+        return header_matches
+    
+    def _find_header_row_by_bold(self, worksheet: Worksheet, max_rows: int) -> Optional[int]:
+        """
+        Find the header row by detecting the row with the MOST bold cells.
+        SIMPLE RULE: Row with most bold cells = header row.
+        Also validates that the row contains HEADER TEXT (not data values).
+        
+        Args:
+            worksheet: The worksheet to analyze
+            max_rows: Maximum number of rows to check
+            
+        Returns:
+            Row number of the header row, or None if not found
+        """
+        candidates = []
+        
+        for row_num in range(1, min(max_rows + 1, worksheet.max_row + 1)):
+            bold_count = 0
+            filled_count = 0
+            text_count = 0
+            numeric_count = 0
+            
+            # Count bold cells and analyze cell content
+            for col in range(1, min(21, worksheet.max_column + 1)):
+                cell = worksheet.cell(row=row_num, column=col)
+                
+                if cell.value is not None:
+                    cell_value = str(cell.value).strip()
+                    if cell_value:
+                        filled_count += 1
+                        
+                        # Check if cell is bold
+                        if cell.font and cell.font.bold:
+                            bold_count += 1
+                        
+                        # Check if cell contains text or numbers
+                        # Remove common punctuation and check
+                        clean_value = cell_value.replace(',', '').replace('$', '').replace('.', '')
+                        if clean_value.replace('-', '').isdigit():
+                            numeric_count += 1
+                        else:
+                            text_count += 1
+            
+            # Row must have:
+            # 1. At least 3 bold cells
+            # 2. More text than numbers (headers are text labels, not data)
+            if bold_count >= 3 and text_count > numeric_count:
+                candidates.append({
+                    'row': row_num,
+                    'bold_count': bold_count,
+                    'filled_count': filled_count,
+                    'text_count': text_count,
+                    'numeric_count': numeric_count
+                })
+        
+        if not candidates:
+            return None
+        
+        # Sort by bold count ONLY - highest wins
+        candidates.sort(key=lambda x: x['bold_count'], reverse=True)
+        
+        # Debug output
+        print(f"[BOLD_DETECTION] Found {len(candidates)} candidates with bold cells:")
+        for i, c in enumerate(candidates[:5]):  # Show top 5
+            marker = " ← SELECTED (MOST BOLD)" if i == 0 else ""
+            print(f"  Row {c['row']:2d}: {c['bold_count']:2d} bold cells, "
+                  f"{c['text_count']} text, {c['numeric_count']} numeric{marker}")
+        
+        return candidates[0]['row']
+    
+    def _find_header_row_by_keywords(self, worksheet: Worksheet, max_rows: int) -> Optional[int]:
+        """
+        Fallback method: Find header row by keyword matching.
+        Used when bold detection fails.
+        
+        Args:
+            worksheet: The worksheet to analyze
+            max_rows: Maximum number of rows to check
+            
+        Returns:
+            Row number of the header row, or None if not found
+        """
+        for row_num in range(1, min(max_rows + 1, worksheet.max_row + 1)):
+            keyword_count = 0
+            
+            for col in range(1, min(21, worksheet.max_column + 1)):
+                cell = worksheet.cell(row=row_num, column=col)
+                
                 if cell.value is not None:
                     cell_value = str(cell.value).strip()
                     
-                    # Check if cell contains any of our header keywords
+                    # Check if cell contains any header keyword
                     for keyword in self.header_keywords:
                         if self._matches_keyword(cell_value, keyword):
-                            header_row_found = cell.row
-            if header_row_found:
-                break
-            if header_row_found:
-                break
-        if header_row_found:
-            is_double_header = self._is_double_header(worksheet, header_row_found)
+                            keyword_count += 1
+                            break
             
-            if is_double_header:
-                # Extract headers from both rows for double header
-                header_matches = self._extract_double_header(worksheet, header_row_found)
-            else:
-                # Extract headers from single row
-                header_matches = self._extract_all_headers_from_row(worksheet, header_row_found)
-            
-            # Apply quantity mode enhancement if enabled
-            if self.quantity_mode:
-                header_matches = self._apply_quantity_mode_enhancement(header_matches, worksheet)
+            # If we found at least 3 keywords in this row, it's likely the header
+            if keyword_count >= 3:
+                print(f"[KEYWORD_DETECTION] Found header row {row_num} with {keyword_count} keywords")
+                return row_num
         
-        return header_matches
+        return None
+    
+    def _is_double_header_quantity_based(self, worksheet: Worksheet, header_row: int) -> bool:
+        """
+        STRICT: Determine if this is a 2-row header with multiple validation checks.
+        Only returns True if ALL conditions are met:
+        1. "Quantity" keyword exists in header row
+        2. Next row has SUB-HEADERS (short text like PCS, SF), NOT data
+        3. Next row has bold cells (formatted like headers)
+        4. Next row cells are SHORT (2-5 chars like "PCS", "SF")
+        
+        Args:
+            worksheet: The worksheet to analyze
+            header_row: The detected header row number
+            
+        Returns:
+            True if this is a 2-row header (all conditions met), False otherwise
+        """
+        # CHECK 1: "Quantity" keyword must exist
+        has_quantity = False
+        for col in range(1, min(21, worksheet.max_column + 1)):
+            cell = worksheet.cell(row=header_row, column=col)
+            
+            if cell.value is not None:
+                cell_value = str(cell.value).strip().lower()
+                
+                # Check for "Quantity" or "Qty" variations
+                if 'quantity' in cell_value or cell_value == 'qty' or 'qty' in cell_value:
+                    has_quantity = True
+                    print(f"[DOUBLE_HEADER_DETECTION] ✓ Found 'Quantity' at row {header_row}, col {col}")
+                    break
+        
+        if not has_quantity:
+            print(f"[DOUBLE_HEADER_DETECTION] ✗ No 'Quantity' keyword found → Single-row header")
+            return False
+        
+        # CHECK 2: Next row must exist
+        if header_row >= worksheet.max_row:
+            print(f"[DOUBLE_HEADER_DETECTION] ✗ No next row → Single-row header")
+            return False
+        
+        next_row = header_row + 1
+        
+        # CHECK 3: Analyze next row content
+        text_cells = 0
+        numeric_cells = 0
+        bold_cells = 0
+        short_text_cells = 0  # NEW: Count short text (like PCS, SF)
+        long_text_cells = 0   # NEW: Count long text (like descriptions)
+        
+        for col in range(1, min(21, worksheet.max_column + 1)):
+            cell = worksheet.cell(row=next_row, column=col)
+            if cell.value is not None:
+                cell_value = str(cell.value).strip()
+                if cell_value:
+                    # Check if bold
+                    if cell.font and cell.font.bold:
+                        bold_cells += 1
+                    
+                    # Check if numeric or text
+                    clean_value = cell_value.replace(',', '').replace('$', '').replace('.', '')
+                    if clean_value.replace('-', '').isdigit():
+                        numeric_cells += 1
+                    else:
+                        text_cells += 1
+                        # Check length - sub-headers are SHORT (PCS, SF, KG)
+                        if len(cell_value) <= 5:
+                            short_text_cells += 1
+                        else:
+                            long_text_cells += 1
+        
+        # CHECK 4: Next row must have more text than numbers
+        if text_cells == 0 or numeric_cells >= text_cells:
+            print(f"[DOUBLE_HEADER_DETECTION] ✗ Next row has {text_cells} text, {numeric_cells} numeric → Looks like data row")
+            return False
+        
+        # CHECK 5: Next row must have at least some bold cells (formatted like headers)
+        if bold_cells < 2:
+            print(f"[DOUBLE_HEADER_DETECTION] ✗ Next row has only {bold_cells} bold cells → Not a header row")
+            return False
+        
+        # CHECK 6: Next row should have SHORT text (sub-headers), not LONG text (descriptions)
+        if long_text_cells > short_text_cells:
+            print(f"[DOUBLE_HEADER_DETECTION] ✗ Next row has {long_text_cells} long text cells → Looks like data descriptions")
+            return False
+        
+        # ALL CHECKS PASSED - This is a 2-row header!
+        print(f"[DOUBLE_HEADER_DETECTION] ✓ Confirmed 2-row header:")
+        print(f"  Next row: {text_cells} text ({short_text_cells} short, {long_text_cells} long), "
+              f"{numeric_cells} numeric, {bold_cells} bold cells")
+        return True
     
     def calculate_start_row(self, header_positions: List[HeaderMatch]) -> int:
         """
@@ -228,29 +440,6 @@ class HeaderDetector:
         enhanced_headers.append(sqft_header)
         
         return enhanced_headers
-    
-    def _is_double_header(self, worksheet: Worksheet, header_row: int) -> bool:
-        """
-        Check if the header has two rows by examining if the first column is merged.
-        
-        Args:
-            worksheet: The openpyxl worksheet to analyze
-            header_row: The row number where header was found
-            
-        Returns:
-            True if this is a double header (first column is merged), False otherwise
-        """
-        # Get the first column cell (column A) of the header row
-        first_cell = worksheet.cell(row=header_row, column=1)
-        
-        # Check if this cell is part of a merged range
-        for merged_range in worksheet.merged_cells.ranges:
-            if first_cell.coordinate in merged_range:
-                # If the merged range spans multiple rows, it's a double header
-                if merged_range.max_row > merged_range.min_row:
-                    return True
-        
-        return False
     
     def _extract_double_header(self, worksheet: Worksheet, header_row: int) -> List[HeaderMatch]:
         """

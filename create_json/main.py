@@ -226,7 +226,7 @@ def perform_DAF_compounding(
         # --- Path 2: Descriptions are NOT present -> PO Count Split Aggregation ---
         # Totals are calculated based on conceptual groups of 8 POs.
         # Final string formatting uses chunk size 2.
-        PO_GROUPING_FOR_TOTALS = 5 # Define the size for grouping totals
+        PO_GROUPING_FOR_TOTALS = 7 # Define the size for grouping totals
         logging.info(f"{prefix} No description data found. Performing PO count split aggregation.")
         logging.info(f"{prefix}   - Totals calculated per group of {PO_GROUPING_FOR_TOTALS} POs.")
         logging.info(f"{prefix}   - String formatting uses chunk size {DAF_CHUNK_SIZE} and separator '{DAF_INTRA_CHUNK_SEPARATOR}'.")

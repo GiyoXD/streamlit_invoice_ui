@@ -288,12 +288,13 @@ def load_data(data_path: Path) -> Optional[Dict[str, Any]]:
     except Exception as e: print(f"Error loading data file {data_path}: {e}"); traceback.print_exc(); return None
 # --- End Placeholder ---
 
-def calculate_header_dimensions(header_layout: List[Dict[str, Any]]) -> Tuple[int, int]:
+def calculate_header_dimensions(header_layout: List[Dict[str, Any]], DAF_mode: bool = False) -> Tuple[int, int]:
     """
     Calculates the total number of rows and columns a header will occupy.
 
     Args:
         header_layout: The list of dictionaries defining the header.
+        DAF_mode: If True, the 50-column cap is not applied.
 
     Returns:
         A tuple containing (num_header_rows, num_header_columns).
@@ -308,8 +309,9 @@ def calculate_header_dimensions(header_layout: List[Dict[str, Any]]) -> Tuple[in
     # Calculate the total number of columns the header occupies
     num_cols = max(cell.get('col', 0) + cell.get('colspan', 1) for cell in header_layout)
     
-    # Cap the number of columns at 50
-    num_cols = min(num_cols, 50)
+    # Cap the number of columns at 50, unless in DAF mode
+    if not DAF_mode:
+        num_cols = min(num_cols, 50)
 
     return (num_rows, num_cols)
 
@@ -324,7 +326,8 @@ def pre_calculate_and_insert_rows(
     table_keys: List[str],
     all_tables_data: Dict[str, Any],
     sheet_mapping_section: Dict[str, Any],
-    header_to_write: List[Dict[str, Any]]
+    header_to_write: List[Dict[str, Any]],
+    DAF_mode: bool = False
 ) -> Tuple[bool, int]:
     """
     Pre-calculates the total number of rows required for a multi-table layout and inserts them.
@@ -357,7 +360,7 @@ def pre_calculate_and_insert_rows(
         if not table_data_to_fill or not isinstance(table_data_to_fill, dict):
             continue
 
-        num_header_rows, _ = calculate_header_dimensions(header_to_write)
+        num_header_rows, _ = calculate_header_dimensions(header_to_write, DAF_mode=DAF_mode)
         total_rows_to_insert += num_header_rows
         print(f"  Table {table_key}: +{num_header_rows} (header)")
 
@@ -456,7 +459,7 @@ def process_single_table_sheet(
         return False
 
     # Calculate num_columns from header_to_write and pass it to write_header
-    _, num_cols_for_header = calculate_header_dimensions(header_to_write)
+    _, num_cols_for_header = calculate_header_dimensions(header_to_write, DAF_mode=args.DAF)
 
     # Write the header based on the layout in the config file
     print(f"Writing header at row {start_row}...")
@@ -742,7 +745,8 @@ def main():
                     table_keys=table_keys,
                     all_tables_data=all_tables_data,
                     sheet_mapping_section=sheet_mapping_section,
-                    header_to_write=header_to_write
+                    header_to_write=header_to_write,
+                    DAF_mode=args.DAF
                 )
                 spacer_row = 1
 
@@ -769,7 +773,7 @@ def main():
                     if not table_data_to_fill or not isinstance(table_data_to_fill, dict): print(f"Warning: No/invalid data for table key '{table_key}'. Skipping."); continue
  
                     # Calculate num_columns from sheet_header_to_write and pass it to write_header
-                    num_header_rows, num_cols_for_header = calculate_header_dimensions(sheet_header_to_write)
+                    num_header_rows, num_cols_for_header = calculate_header_dimensions(sheet_header_to_write, DAF_mode=args.DAF)
 
                     print(f"Writing header for table '{table_key}' at row {write_pointer_row}...");
                     written_header_info = invoice_utils.write_header(

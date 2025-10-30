@@ -167,6 +167,7 @@ def update_mapping_config(new_mappings: dict):
 # --- System Headers ---
 # This list represents the target fields the system knows how to process.
 SYSTEM_HEADERS = [
+    "IGNORE (Skip this header)",
     "col_po", "col_item", "col_desc", "col_qty_pcs", "col_qty_sf", 
     "col_unit_price", "col_amount", "col_net", "col_gross", "col_cbm", 
     "col_pallet", "col_remarks", "col_static"
@@ -277,6 +278,7 @@ if invoice_template_file:
         )
 
         st.write("For each unrecognized header from your file, select the correct system field it corresponds to. The system has made its best guess.")
+        st.write("**Tip:** Select `IGNORE` for headers you don't need to map (they will be skipped).")
         
         if not missing_headers:
             st.success("✅ All headers were automatically recognized!")
@@ -303,11 +305,17 @@ if invoice_template_file:
                         f"Map '{header_text}' to:",
                         options=SYSTEM_HEADERS,
                         index=guess_index,
-                        key=f"map_{header_text}"
+                        key=f"map_{header_text}",
+                        help="Select 'IGNORE' to skip this header completely"
                     )
                     mapping_selections[header_text] = selection
             
             st.session_state['user_mappings'] = mapping_selections
+            
+            # Show summary of ignored headers
+            ignored_headers = [h for h, m in mapping_selections.items() if m.startswith("IGNORE")]
+            if ignored_headers:
+                st.info(f"📝 {len(ignored_headers)} header(s) will be ignored: {', '.join(f'`{h}`' for h in ignored_headers)}")
 
         st.markdown("---")
         st.subheader("Step 3: Generate and Save New Template")
@@ -323,18 +331,27 @@ if invoice_template_file:
                 # The main.py script will read this updated file.
                 user_mappings = st.session_state.get('user_mappings', {})
                 if user_mappings:
-                    if not update_mapping_config(user_mappings):
-                        st.error("Failed to update the master mapping configuration. Aborting.")
-                        st.stop()
+                    # Filter out IGNORE mappings - these headers should not be mapped
+                    filtered_mappings = {
+                        header: col_id 
+                        for header, col_id in user_mappings.items() 
+                        if not col_id.startswith("IGNORE")
+                    }
+                    
+                    if filtered_mappings:
+                        if not update_mapping_config(filtered_mappings):
+                            st.error("Failed to update the master mapping configuration. Aborting.")
+                            st.stop()
                     
                     # Log mapping update activity
+                    ignored_count = len(user_mappings) - len(filtered_mappings)
                     try:
                         log_business_activity(
                             user_id=user_info['user_id'],
                             username=user_info['username'],
                             activity_type='MAPPING_UPDATED',
                             description=f"Updated header mappings for template {file_prefix} from file: {file_name}",
-                            action_description=f"Added {len(user_mappings)} new header mappings to global configuration from '{file_name}'",
+                            action_description=f"Added {len(filtered_mappings)} new header mappings to global configuration from '{file_name}' ({ignored_count} headers ignored)",
                             success=True
                         )
                     except Exception as e:
