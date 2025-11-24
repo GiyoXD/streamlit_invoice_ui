@@ -1,0 +1,2 @@
+- never use print for debug, instead use log
+- never modify config json, template but allow to read
