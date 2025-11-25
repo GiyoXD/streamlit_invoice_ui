@@ -269,3 +269,7 @@ if bold_count >= 3 and text_count > numeric_count:
 
 Test it and check the debug output to see the text/numeric counts for each row!
 
+
+
+
+

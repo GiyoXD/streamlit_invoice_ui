@@ -198,3 +198,7 @@ ELSE keep looking
 The algorithm now does exactly what you specified:
 **Most bold cells = header row**
 
+
+
+
+

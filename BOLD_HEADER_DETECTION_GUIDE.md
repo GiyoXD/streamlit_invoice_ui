@@ -386,3 +386,7 @@ python config_template_cli/config_data_extractor/analyze_excel.py your_invoice.x
 
 Check the console output for `[BOLD_DETECTION]` messages to see how it's working!
 
+
+
+
+
